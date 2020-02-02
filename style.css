@@ -1,0 +1,151 @@
+#stave{
+  width: max-content;
+  padding-right: 3px;
+  border: 1px solid black;
+  border-right: 5px solid black;
+}
+
+#messages{
+  height: 100px;
+  width: 100%;
+  background: #F99;
+  display: block;
+  float: left;
+}
+
+#next_error{
+  background: red;
+}
+
+.line{
+  border-top: 1px  solid black;
+  margin: 10px -3px 10px 0px;
+}
+
+.measure{
+  border-right: 1px solid black;
+  height: 190px;
+  float: left;
+}
+
+#measures{
+  transform: translate(0px,-100%);
+  height: 44px;
+  float: left;
+}
+
+#clef_box{
+  float: left;
+}
+
+.violinkey{
+  height: 80px;
+  transform: translate(0px,-20%);
+  display: block;
+}
+
+.basskey{
+  height: 35px;
+  margin: 66px 0 0 8px;
+}
+
+.notespace{
+  position: relative;
+  top: 50%;
+  transform: translateY(-106px);
+  margin: 0 20px 0 10px;
+  float: left;
+  width: 25px;
+}
+
+.notespace.playing{
+  background-color: rgba(0, 0, 255, 0.5);
+}
+
+.lineontop{
+  border-top: 1px solid black;
+}
+
+.lineonbottom{
+  border-bottom: 1px solid black;
+}
+
+.noline{
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+}
+
+.clef_notes{
+}
+
+.bass_notes{
+}
+
+.lyrics{
+  height: 77px; 
+}
+
+.notespot{
+  width: 17px;
+  height: 11px;
+  margin:-5.5px auto;
+  border-radius: 50%;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.notespot.wholenote{
+  background-image: url("https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Daman_semibreve.svg/1280px-Daman_semibreve.svg.png");
+}
+
+img.wholenote{
+  width: 18px;
+  transform: translateY(-4.5px);
+}
+
+img.sharp{
+  transform: translate(-11px, -28px);
+  width: 9px;
+}
+
+img.wholerest{
+  width: 18px;
+  transform: translateY(-9px);
+}
+
+.notespot.wholerest{
+  background-image: url("https://www.trzcacak.rs/myfile/full/215-2155538_whole-rest-png-darkness.png");
+}
+
+.notespot.active:hover{
+  background-color: rgba(255, 0, 0, 0.5);
+}
+
+.container{
+  width: min-content;
+  background: #ccc;
+  padding: 50px 10px 5px 10px;
+  float: left;
+}
+
+.settings{
+  padding: 5px;
+  height: 35px;
+  background-color: grey;
+  float: left;
+  margin-top: 50px;
+}
+
+.button{
+  width:15px;
+  height:15px;
+  display: block;
+}
+
+.button.active{
+  background-color: red;
+}
+
+#plus{
+  margin-bottom: 5px;
+}
