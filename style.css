@@ -153,7 +153,6 @@ body{
 
 img.wholenote{
   width: 18px;
-  transform: translateY(-4.5px);
 }
 
 img.sharp{
@@ -163,7 +162,6 @@ img.sharp{
 
 img.wholerest{
   width: 18px;
-  transform: translateY(-9px);
 }
 
 .notespot.wholerest{
