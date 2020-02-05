@@ -3,6 +3,7 @@ body{
   background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/4e/Organ_of_Notre-Dame_de_Paris.jpg");
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
 }
 
 #stave{
@@ -26,13 +27,11 @@ body{
 }
 
 .from_gregory{
-  border-radius: 20px;
-  border-start-start-radius: 0px;
+  border-radius: 0 40px 40px 40px;
 }
 
 .from_palestrina{
-  border-radius: 20px;
-  border-start-end-radius: 0px;
+  border-radius: 40px 0px 40px 40px;
 }
 
 #text{
@@ -46,6 +45,10 @@ body{
   padding: 5px 20px;
   margin: 0px 20px;
   border-radius: 5px;
+}
+
+.error_button:hover{
+  box-shadow: 0 0 10px #FFF;
 }
 
 #prev_error{
@@ -200,8 +203,12 @@ img.wholerest{
   border-radius: 3px;
 }
 
+.button:hover{
+  box-shadow: 0 0 10px #FFF;
+}
+
 .button.active{
-  background-color: red;
+  background-color: #DDD;
 }
 
 .character{
