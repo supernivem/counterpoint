@@ -9,7 +9,8 @@ const url_wholerest = "https://lh6.googleusercontent.com/proxy/lM-D-KWg-Q3zdET2V
 const url_wholenote = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Daman_semibreve.svg/1280px-Daman_semibreve.svg.png";
 const url_sharp = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Sharp.svg/1200px-Sharp.svg.png";
 const url_flat = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Flat.svg/1200px-Flat.svg.png";
-const url_arrow = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PES-Red-Arrow.svg/1077px-PES-Red-Arrow.svg.png";
+const url_arrow_top = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PES-Red-Arrow.svg/1077px-PES-Red-Arrow.svg.png";
+const url_arrow_down = "https://manaperformancetherapy.com/wp-content/uploads/2018/03/red-arrow.png";
 const url_treble = "https://cdn.clipart.email/bc4f20784fa11c391454b6b091cfaf36_music-key-clipart-clipartxtras_3000-3000.svg";
 const url_bass = "https://static.thenounproject.com/png/501763-200.png";
 const messages = new Map([
@@ -186,11 +187,8 @@ function insert_note(event){
   var length = cantus_firmus.length;
   if(counterpoint_active){
     counterpoint[index] = {note: j, alter: alter_active};
-    intervals[index] = get_interval(j, cantus_firmus[index].note);
-    if(index<length-1)
-      motions[index] = get_motion(j, counterpoint[index+1] ? counterpoint[index+1].note : null, cantus_firmus[index].note, cantus_firmus[index+1].note);
-    if(index>0)
-      motions[index-1] = get_motion(counterpoint[index-1] ? counterpoint[index-1].note : null, j, cantus_firmus[index-1].note, cantus_firmus[index].note);
+    intervals = get_all_intervals(cantus_firmus, counterpoint);
+    motions = get_all_motions(cantus_firmus, counterpoint);
   }
   else
     cantus_firmus[index] = {note: j, alter: alter_active};
@@ -381,15 +379,22 @@ function insert_measure(){
   document.getElementById("measures").appendChild(new_measure);
 }
 
-function remove_measure(){
+function remove_one_measure(){
+  remove_measure(1);
+}
+
+function remove_measure(int){
+  var count = 0;
   var stave = document.getElementById("measures");
   var number = stave.childElementCount - 1;
   if(counterpoint_active)
     update_message_box(-1, "Non puoi più modificare la lunghezza del brano");
   else
-    if(number>min_measures){
+    while(number>min_measures && int>count){
       cantus_firmus.splice(-notes_in_measure, notes_in_measure);
       stave.lastElementChild.remove();
+      count++;
+      number = stave.childElementCount - 1;
     }
 }
 
@@ -454,19 +459,24 @@ function display_playing_note(notespace, duration){
 
 function ask_deleting_song(){
   document.getElementById("alert_ok").onclick = delete_song;
-  display_alert("Eliminare tutto il brano?");
+  display_alert("Eliminare tutta la voce?");
 }
 
 function delete_song(){
-  var p = document.getElementById("measures").firstElementChild.nextElementSibling;
+  /*var p = document.getElementById("measures").firstElementChild.nextElementSibling;
   var next;
   while(p){
     next = p.nextElementSibling;
     p.remove();
     p = next;
-  }
-  cantus_firmus = [];
-  insert_measure();
+  }*/
+  if(counterpoint_active)
+    counterpoint = [];
+  else
+    cantus_firmus = [];
+  intervals = [];
+  motions = [];
+  render_stave();
   hide_alert();
 }
 
@@ -501,6 +511,7 @@ function ask_import_song(){
 function import_song(){
   var note;
   var saved_cf_clef;
+  var measure_exceed = 0;
   var doc = db.collection("data").doc("song").get()
     .then(doc => {
       saved_cf_clef = doc.data().clef;
@@ -516,6 +527,9 @@ function import_song(){
           cantus_firmus[i] = null;
       }
       render_stave();
+      measure_exceed = document.getElementById("measures").childElementCount-cantus_firmus.length-1;
+      if(measure_exceed > 0)
+        remove_measure(measure_exceed);
       note = doc.data().ctp;
       if(note.length){
         counterpoint_active = true;
@@ -530,9 +544,10 @@ function import_song(){
         render_stave();
         pass_to_counterpoint();
       }
+      update_message_box(1, "Brano importato correttamente");
     })
     .catch(err => {
-      update_message_box(-11, "Impossibile importare il brano");
+      update_message_box(-1, "Impossibile importare il brano");
     });
   hide_alert();
 }
@@ -670,15 +685,16 @@ function notify_errors(number){
   if(!errors.length){
     type = 1;
     text = "Molto bene";
+    next_button.style.display = "none";
   }
   else if(errors[number]){
     type = -1;
     display_pointers(errors[number].positions);
     text = "Errore " + (number+1) + " di " + errors.length + ": " + messages.get(errors[number].type);
+    next_button.style.display = "inline-block";
+    next_button.onclick = function(){notify_errors(number+1);};
   }
   update_message_box(type, text);
-  next_button.style.display = "inline-block";
-  next_button.onclick = function(){notify_errors(number+1);};
 }
 
 function update_message_box(type, text){
@@ -692,8 +708,10 @@ function update_message_box(type, text){
     else if(type>0)
       message_box.setAttribute("style", "background: rgba(153, 255, 153, 0.8)");
   }
-  else
+  else{
     message_box.style.display = "none";
+    document.getElementById("next_error").style.display = "none";
+  }
 }
 
 function display_alert(text){
@@ -710,11 +728,17 @@ function display_pointers(positions){
   var measure = document.getElementById("measures").firstElementChild.nextElementSibling;
   var lyrics_box;
   var pointer_box;
+  var on_treble = is_active_treble();
+  var url_arrow;
+  if(on_treble)
+    url_arrow = url_arrow_top;
+  else
+    url_arrow = url_arrow_down;
   for(var i=0; measure; i++){
     var notespace = measure.firstElementChild;
     for(var j=0; notespace; j++){
       lyrics_box = notespace.firstElementChild.nextElementSibling;
-      if(is_active_treble())
+      if(on_treble)
         pointer_box = lyrics_box.firstElementChild;
       else
         pointer_box = lyrics_box.lastElementChild;
@@ -722,7 +746,7 @@ function display_pointers(positions){
       if(positions.includes(i*notes_in_measure+j)){
         var img = document.createElement("img");
         img.src = url_arrow;
-        img.classList.add("wholenote");
+        img.classList.add("arrow");
         pointer_box.append(img);
         pos++;
       }
@@ -987,6 +1011,8 @@ function has_multiple_climax(cantus_firmus){
 
 function correct_song(){
   errors = [];
+  display_pointers([]);
+  document.getElementById("next_error").style.display = "none";
   if(counterpoint_active)
     correct_counterpoint();
   else
@@ -1410,9 +1436,6 @@ function fix_extremes_counterpoint(counterpoint){
   var intervals = get_all_intervals(cantus_firmus, counterpoint);
   var errors = has_correct_start(intervals).length;
   var change = 0;
-  //var new_first = 0;
-  //var new_last = 0;
-  //var new_penultimate = 0;
   var length = counterpoint.length;
   var max_note = 12;
   var min_note = 0;
@@ -1421,21 +1444,23 @@ function fix_extremes_counterpoint(counterpoint){
     min_note = -12;
   }
   while(errors && change<26){
+    if(change>0) change++;
+    else change--;
     change = -change;
-    if(change>=0)
-      change++;
     counterpoint[0].note += change;
     if(counterpoint[0].note>=min_note && counterpoint[0].note<=max_note){
       intervals = get_all_intervals(cantus_firmus, counterpoint);
       errors = has_correct_start(intervals).length;
     }
+    else
+      errors = 1;
   }
   change = 0;
   errors = has_correct_end(intervals, counterpoint).length;
   while(errors && change<26){
+    if(change>0) change++;
+    else change--;
     change = -change;
-    if(change>=0)
-      change++;
     counterpoint[length-1].note += change;
     if(counterpoint[length-1].note>min_note && counterpoint[length-1].note<=max_note){
       counterpoint[length-2].note = counterpoint[length-1].note-1;
@@ -1484,6 +1509,7 @@ function random_song(){
   else
     random_cantus_firmus();
   hide_alert();
+  update_message_box(0, "");
 }
 
 function random_cantus_firmus(){
@@ -1572,12 +1598,13 @@ function go_back_to_cf(event){
   swap_active_clef();
   counterpoint_active = false;
   toggle_message_direction();
+  update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
 }
 
 for(var i=0; i<min_measures; i++)
   insert_measure();
 document.getElementById("plus").onclick = add_measure;
-document.getElementById("minus").onclick = remove_measure;
+document.getElementById("minus").onclick = remove_one_measure;
 document.getElementById("play").onclick = play_song;
 document.getElementById("save").onclick = ask_saving_song;
 document.getElementById("delete").onclick = ask_deleting_song;
