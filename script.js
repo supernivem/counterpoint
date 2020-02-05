@@ -1494,7 +1494,7 @@ function evaluate_counterpoint(counterpoint, intervals, motions){
 
 function ask_random(){
   document.getElementById("alert_ok").onclick = random_song;
-  display_alert("La randomizzazione sovrascrive il brano esistente. Continuare?");
+  display_alert("La randomizzazione sovrascrive la voce esistente. Continuare?");
 }
 
 function random_song(){
@@ -1575,7 +1575,7 @@ function pass_to_counterpoint(){
     swap_active_clef();
     counterpoint_active = true;
     toggle_message_direction();
-    update_message_box(0, "Ciao, sono Giovanni Pierluigi da Palestrina e ti aiuterò a scrivere una seconda voce seconfo le regole del Contrappunto di Prima Specie");
+    update_message_box(0, "Ciao, sono Giovanni Pierluigi da Palestrina e ti aiuterò a scrivere una seconda voce secondo le regole del Contrappunto di Prima Specie");
   }
 }
 
@@ -1596,6 +1596,14 @@ function go_back_to_cf(event){
   display_pointers([]);
 }
 
+function initialize(){
+  document.getElementById("title").style.display = "none";
+  document.getElementById("alert_window").style.display = "block";
+  document.getElementById("hide_all").style.display = "none";
+  document.getElementById("container").style.visibility = "visible";
+  update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
+}
+
 for(var i=0; i<min_measures; i++)
   insert_measure();
 document.getElementById("plus").onclick = add_measure;
@@ -1612,4 +1620,5 @@ document.getElementById("random").onclick = ask_random;
 document.getElementById("cf_clef").onclick = swap_cf_clef;
 document.getElementById("counterpoint").onclick = pass_to_counterpoint;
 document.getElementById("alert_cancel").onclick = hide_alert;
-update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
+document.getElementById("get_in").onclick = initialize;
+update_message_box(0, "");
