@@ -1,6 +1,6 @@
 body{
   border: 1px solid transparent;
-  background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/4e/Organ_of_Notre-Dame_de_Paris.jpg");
+  background-image: url("images/notredame.jpg");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -36,6 +36,8 @@ body{
 
 #text{
   height: 50px;
+  width: 90%;
+  margin: auto;
 }
 
 .error_button{
@@ -158,7 +160,7 @@ body{
 }
 
 .notespot.wholenote{
-  background-image: url("https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Daman_semibreve.svg/1280px-Daman_semibreve.svg.png");
+  background-image: url("images/wholenote.png");
 }
 
 img.wholenote{
@@ -175,7 +177,7 @@ img.wholerest{
 }
 
 .notespot.wholerest{
-  background-image: url("https://www.trzcacak.rs/myfile/full/215-2155538_whole-rest-png-darkness.png");
+  background-image: url("images/wholerest.png");
 }
 
 .notespot.active:hover{
@@ -184,7 +186,7 @@ img.wholerest{
 
 .container{
   width: min-content;
-  background: url("https://img.freepik.com/foto-gratuito/texture-di-carta-vecchia-sfondo-di-carta-pergamena_86638-331.jpg?size=626&ext=jpg");
+  background: url("images/paper.jpg");
   padding: 50px 40px;
   margin: 100px auto 100px;
   box-shadow: 0 0 30px #000, 0 0 40px #000, 0 0 50px #000;

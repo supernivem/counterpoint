@@ -5,14 +5,14 @@ const fadeOut = 0.1;
 const example_last = 0.5;
 const whole_note = 1;
 const fundamental_frequency = 220;
-const url_wholerest = "https://lh6.googleusercontent.com/proxy/lM-D-KWg-Q3zdET2V61V_gH2e7qM--Jq4gLUr1KsEMIZW1WTHMIYdTE3RvF06Kce3lP_I2P4AhT0358QAZLWCvaL6cOOiB6kj4n6CQuWNL_6uGc";
-const url_wholenote = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Daman_semibreve.svg/1280px-Daman_semibreve.svg.png";
-const url_sharp = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Sharp.svg/1200px-Sharp.svg.png";
-const url_flat = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Flat.svg/1200px-Flat.svg.png";
-const url_arrow_top = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PES-Red-Arrow.svg/1077px-PES-Red-Arrow.svg.png";
-const url_arrow_down = "https://manaperformancetherapy.com/wp-content/uploads/2018/03/red-arrow.png";
-const url_treble = "https://cdn.clipart.email/bc4f20784fa11c391454b6b091cfaf36_music-key-clipart-clipartxtras_3000-3000.svg";
-const url_bass = "https://static.thenounproject.com/png/501763-200.png";
+const url_wholerest = "images/wholerest.png";
+const url_wholenote = "images/wholenote.png";
+const url_sharp = "images/sharp.png";
+const url_flat = "images/flat.png";
+const url_arrow_top = "images/arrowtop.png";
+const url_arrow_down = "images/arrowdown.png";
+const url_treble = "images/treble.svg";
+const url_bass = "images/bass.png";
 const messages = new Map([
     ['too_short', 'Il cantus firmus è troppo corto'],
     ['pauses', 'Non ci devono essere pause'],
