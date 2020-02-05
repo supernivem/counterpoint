@@ -5,17 +5,12 @@ Author: Paolo Bordoni
 University: Politecnico di Milano - M.Sc. Music and Acoustic Engineering
 
 Subjects:
-
-	- "Advanced Coding Tools and Methodologies", by Prof. Francesco Bruschi, Prof. Vincenzo Rana
-	
-	- "Computer Music - Representations and Models" by Prof. Augusto Sarti
+- *Advanced Coding Tools and Methodologies*, by Prof. Francesco Bruschi, Prof. Vincenzo Rana
+- *Computer Music - Representations and Models*, by Prof. Augusto Sarti
 
 Surge: http://counterpoint.surge.sh
 
 Tested on Chrome 79.0.3945.130 e FireFox 72.0.2 in Windows 10 environment.
-
-
-
 
 ## Overview
 
@@ -28,3 +23,19 @@ One of the most famous polyphonic composer who worked on conterpont was **Giovan
 ## Technical aspects
 
 The most challenging part of this project is the **automatic correction tool**, both of Cantus Firmus and Counterpoint. It is based on a genetic algorithm that, starting from your own composition (or even on a randomic one), it introduces some changes and time to time evaluates the new version, looking for the best one. When a voice whithout mistakes is found, the app provides you the solution and allows you to listen to the new music.
+
+## Guide
+
+The buttons on the top have respectively the follow funcions:
+- Add new measure
+- Remove the last measure
+- Save the song
+- Delete the song
+- Import the saved song
+- Enable/disable sharp note insertion
+- Enable/disable flat note insertion
+- Chech the current voice
+- Fix the current voice
+- Randomize the current voice
+- Select the stave on which you want to compose the Cantus Firmus (only at beginning!)
+- Swap from Cantus Firmus to Second Voice and vice versa
