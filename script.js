@@ -1247,9 +1247,9 @@ function has_consecutive_fifths_or_octaves(intervals){
   var positions = new Array();
   for(var i=0; i<intervals.length-1; i++){
     if((intervals[i]==5 || intervals[i]==8) && intervals[i]==intervals[i+1])
-      positions.push(1, i+1);
+      positions.push(i, i+1);
     if(Math.abs(intervals[i]-intervals[i+1])==7)
-      positions.push(1, i+1);
+      positions.push(i, i+1);
   }
   return positions;
 }
@@ -1461,6 +1461,8 @@ function fix_extremes_counterpoint(counterpoint){
       intervals = get_all_intervals(cantus_firmus, counterpoint);
       errors = has_correct_end(intervals, counterpoint).length;
     }
+    else
+      errors = 1;
   }
 }
 
