@@ -399,6 +399,7 @@ function remove_measure(int){
 }
 
 function play_note(note, duration){
+  var max_gain = Math.pow(0.97, note+12);
   var ac = new AudioContext();
   var wave = ac.createPeriodicWave(real, imag);
   var osc = ac.createOscillator();
@@ -409,7 +410,7 @@ function play_note(note, duration){
   g.connect(ac.destination);
   g.gain.value = 0;
   osc.start();
-  g.gain.setTargetAtTime(1, ac.currentTime, fadeIn);
+  g.gain.setTargetAtTime(max_gain, ac.currentTime, fadeIn);
   g.gain.setTargetAtTime(0, ac.currentTime+duration, fadeOut);
   osc.stop(duration*10);
 }
@@ -463,13 +464,6 @@ function ask_deleting_song(){
 }
 
 function delete_song(){
-  /*var p = document.getElementById("measures").firstElementChild.nextElementSibling;
-  var next;
-  while(p){
-    next = p.nextElementSibling;
-    p.remove();
-    p = next;
-  }*/
   if(counterpoint_active)
     counterpoint = [];
   else
@@ -1599,6 +1593,7 @@ function go_back_to_cf(event){
   counterpoint_active = false;
   toggle_message_direction();
   update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
+  display_pointers([]);
 }
 
 for(var i=0; i<min_measures; i++)
