@@ -133,12 +133,19 @@ body{
 
 .arrow_box{
   height: 25px;
+  text-align: center;
 }
 
-.interval_box{}
+.arrow{
+  width: 18px;
+  margin-top: 5px;
+}
+
+.interval_box{
+}
 
 .motion_box{
-  transform: translate(30px);
+  transform: translate(25px);
 }
 
 .notespot{
@@ -159,7 +166,7 @@ img.wholenote{
 }
 
 img.sharp{
-  transform: translate(-11px, -28px);
+  transform: translate(-11px, -20px);
   width: 9px;
 }
 
@@ -220,10 +227,12 @@ img.wholerest{
 
 #gregory{
   left: 3%;
+  filter: drop-shadow(-20px 20px 10px #000);
 }
 
 #palestrina{
   right: 3%;
+  filter: drop-shadow(20px 20px 10px #000);
 }
 
 #hide_all{
