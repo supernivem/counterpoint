@@ -10,7 +10,7 @@ Subjects:
 
 Surge: http://counterpoint.surge.sh
 
-Trailer: https://youtu.be/lihycwecfso
+Trailer: https://youtu.be/lihycwecfso (unfortunately audio is distort)
 
 Tested on Chrome 79.0.3945.130 e FireFox 72.0.2 in Windows 10 environment.
 
