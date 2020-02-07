@@ -29,12 +29,13 @@ The most challenging part of this project is the **automatic correction tool**, 
 ### How the algorithm works
 
 The genetic algorithm looks for a solution introducing time to time some changes in the composition according to the follow rules. For each note of the voice it:
-- increase and decrease the note by one step with probability 50%
-- increase and decrease the note by two steps with probability 20%
-- set a random note with probability 10%
+- increases and decreases the note by one step with probability 50%
+- increases and decreases the note by two steps with probability 30%
+- increases and decreases the note by three steps with probability 20%
+- besides, if the note is preceed or succeed by a leap greather than five steps, it sets a random note (that's because in these cases musical errors can be unlikely fixed by moving only a few steps).
 
-Then each mutation is evalutated by counting the number of musical errors it contains. The 20 candidates with less errors survive and the cicle is repeated until the best solution is not found.
-(NB: the algotithm could not converge, so a timeout of 30 seconds is setted)
+So, for each individual of the population, `two * the length of the piece` mutations are added to the population. Then each mutation is evalutated by counting the number of musical errors it contains. The 20 candidates with less errors survive and the cicle is repeated until the best solution is not found.
+(NB: in some cases the algotithm could not converge, so a limit of 20.000 attempts is setted in order to prevent infinite computations)
 
 ## Guide
 
@@ -54,4 +55,4 @@ The buttons on the top have respectively the follow funcions:
 
 ## Evolution
 
-The app allows you to compose with counterpoint *of first species in two voices*: it means that the song is composed by two voices and there is a one-to-one relation between notes on Cantus Firmus and Counterpoint. Future updates may include the possibility of composing more than two voices and allow to explore Counterpoint in all species.
+Currently, the app lets to write music only in diatonic scale of C major (or A minor) and allows you to compose with counterpoint *of first species in two voices*: it means that the song is composed by two voices and there is a one-to-one relation between notes on Cantus Firmus and Counterpoint. Future updates may include the possibility of writing music in any key, composing more than two voices and allow to explore Counterpoint in all species.
