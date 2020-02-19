@@ -16,7 +16,33 @@ const url_treble = "images/treble.svg";
 const url_bass = "images/bass.png";
 const url_play = "images/play.png";
 const url_stop = "images/stop.png";
-const messages = new Map([
+const messages = {
+  cannot_change_length: "Non puoi più modificare la lunghezza del brano",
+  delete_all: "Eliminare tutta la voce?",
+  save: "Sicuro di voler salvare? Il salvataggio sovrascriverà il brano precedente",
+  save_done: "canzone salvata",
+  import: "Importare il brano? Eliminerai quello esistente",
+  import_done: "Brano importato correttamente",
+  import_error: "Impossibile importare il brano",
+  well_done: "Molto bene",
+  error: "Errore ",
+  of: " di ",
+  colon: ": ",
+  too_short: "E' troppo corto",
+  pauses: "Non ci devono essere pause",
+  correcting: "Sto correggendo...",
+  too_hard: "Troppo difficile correggere",
+  fixed_counterpoint: "Contrappunto corretto",
+  fixed_cantusfirmus: "Cantus firmus corretto",
+  interrupted: "Correzione interrotta",
+  random: "La randomizzazione sovrascrive la voce esistente. Continuare?",
+  cannot_change_clef: "Non puoi più cambiare il rigo del cantus firmus. Elimina il brano e riprova",
+  cannot_pass_to_cp: "Prima di passare a comporre il contrappunto, è necessario comporre un cantus firmus privo di errori",
+  palestrina: "Ciao, sono Giovanni Pierluigi da Palestrina e ti aiuterò a scrivere una seconda voce secondo le regole del Contrappunto di Prima Specie",
+  gregory: "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale",
+  
+};
+const texts = new Map([
     ['too_short', 'Il cantus firmus è troppo corto'],
     ['pauses', 'Non ci devono essere pause'],
     ['chromaticisms', 'Non ci devono essere cromatismi'],
@@ -175,7 +201,7 @@ firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
 
 function insert_note(event){
-  var alter = alter_active;
+  var alter;
   var element = event.target;
   while(element.className != "notespot active")
     element = element.parentNode;
@@ -351,7 +377,7 @@ function insert_wholenote(node, alter){
 
 function add_measure(){
   if(counterpoint_active)
-    update_message_box(-1, "Il contrappunto non può essere più lungo del cantus firmus");
+    update_message_box(-1, messages.cannot_change_length);
   else
     insert_measure();
 }
@@ -410,7 +436,7 @@ function remove_measure(int){
   var stave = document.getElementById("measures");
   var number = stave.childElementCount - 1;
   if(counterpoint_active)
-    update_message_box(-1, "Non puoi più modificare la lunghezza del brano");
+    update_message_box(-1, messages.cannot_change_length);
   else
     while(number>min_measures && int>count){
       cantus_firmus.splice(-notes_in_measure, notes_in_measure);
@@ -421,12 +447,12 @@ function remove_measure(int){
 }
 
 function play_note(note, duration){
-  var max_gain = Math.pow(0.995, note+21)-0.7;
+  var max_gain = Math.pow(0.975, note+21);
   var ac = new AudioContext();
   var wave = ac.createPeriodicWave(real, imag);
   var osc = ac.createOscillator();
   var g = ac.createGain();
-  osc.frequency.setValueAtTime(fundamental_frequency*Math.pow(2, (note-9)/12), ac.currentTime);
+  osc.frequency.setValueAtTime(fundamental_frequency*Math.pow(2, (note-9)/12.001), ac.currentTime);
   osc.setPeriodicWave(wave);
   osc.connect(g);
   g.connect(ac.destination);
@@ -482,7 +508,7 @@ function display_playing_note(notespace, duration){
 
 function ask_deleting_song(){
   document.getElementById("alert_ok").onclick = delete_song;
-  display_alert("Eliminare tutta la voce?");
+  display_alert(messages.delete_all);
 }
 
 function delete_song(){
@@ -498,7 +524,7 @@ function delete_song(){
 
 function ask_saving_song(){
   document.getElementById("alert_ok").onclick = save_song;
-  display_alert("Sicuro di voler salvare? Il salvataggio sovrascriverà il brano precedente");
+  display_alert(messages.save);
 }
 
 function save_song(){
@@ -515,13 +541,17 @@ function save_song(){
       ctp_for_saving[i] = -1;
   }
   db.collection("data").doc("song").set({clef: cf_clef, cf: cf_for_saving, ctp: ctp_for_saving});
-  update_message_box(1, "canzone salvata");
+  update_message_box(1, messages.save_done);
   hide_alert();
 }
 
 function ask_import_song(){
-  document.getElementById("alert_ok").onclick = import_song;
-  display_alert("Importare il brano? Eliminerai quello esistente");
+  if(cantus_firmus.length){
+    document.getElementById("alert_ok").onclick = import_song;
+    display_alert(messages.import);
+  }
+  else
+    import_song();
 }
 
 function import_song(){
@@ -560,10 +590,10 @@ function import_song(){
         render_stave();
         pass_to_counterpoint();
       }
-      update_message_box(1, "Brano importato correttamente");
+      update_message_box(1, messages.import_done);
     })
     .catch(err => {
-      update_message_box(-1, "Impossibile importare il brano");
+      update_message_box(-1, messages.import_error);
     });
   hide_alert();
 }
@@ -700,13 +730,13 @@ function notify_errors(number){
   display_pointers([]);
   if(!errors.length){
     type = 1;
-    text = "Molto bene";
+    text = messages.well_done;
     next_button.style.display = "none";
   }
   else if(errors[number]){
     type = -1;
     display_pointers(errors[number].positions);
-    text = "Errore " + (number+1) + " di " + errors.length + ": " + messages.get(errors[number].type);
+    text = messages.error + (number+1) + messages.of + errors.length + messages.colon + texts.get(errors[number].type);
     next_button.style.display = "inline-block";
     next_button.onclick = function(){notify_errors(number+1);};
   }
@@ -1057,16 +1087,16 @@ function correct_cantus_firmus(){
     random_correction = -1;
   }
   if(length<3){
-    update_message_box(-1, "E' troppo corto");
+    update_message_box(-1, messages.too_short);
     reset_correction();
     return 0;
   }
   if(has_pauses(cantus_firmus).length){
-    update_message_box("#F99", "Non ci devono essere pause");
+    update_message_box(-1, messages.pauses);
     reset_correction();
     return 0;
   }
-  update_message_box(0, "Sto correggendo...");
+  update_message_box(0, messages.correcting);
   for(var i=0; i<length; i++) //eliminate all chromaticisms
     candidate[i].alter = 0;
   fix_extremes(candidate);
@@ -1153,11 +1183,11 @@ function correct_counterpoint(){
     random_correction = -1;
   }
   if(has_pauses(counterpoint).length){
-    update_message_box(-1, "Non ci devono essere pause");
+    update_message_box(-1, messages.pauses);
     reset_correction();
     return 0;
   }
-  update_message_box(0, "Sto correggendo...");
+  update_message_box(0, messages.correcting);
   for(var i=0; i<length; i++) //eliminate all chromaticisms
     candidate[i].alter = 0;
   fix_extremes_counterpoint(candidate);
@@ -1389,15 +1419,15 @@ function close_correction(attempt, cantus){
   var text = "";
   reset_correction();
   if(attempt<=0)
-    update_message_box(-1, "Troppo difficile correggere");
+    update_message_box(-1, messages.too_hard);
   else{
     if(counterpoint_active){
       counterpoint = copy_cf(cantus);
-      text = "Contrappunto corretto";
+      text = messages.fixed_counterpoint;
     }
     else{
       cantus_firmus = copy_cf(cantus);
-      text = "Cantus firmus corretto";
+      text = messages.fixed_cantusfirmus;
     }
     render_stave();
     update_message_box(+1, text);
@@ -1406,7 +1436,7 @@ function close_correction(attempt, cantus){
 
 function stop_correction(){
   clearInterval(loop_cf);
-  update_message_box(-1, "Correzione interrotta");
+  update_message_box(-1, messages.interrupted);
   reset_correction();
 }
 
@@ -1518,7 +1548,7 @@ function evaluate_counterpoint(counterpoint, intervals, motions){
 
 function ask_random(){
   document.getElementById("alert_ok").onclick = random_song;
-  display_alert("La randomizzazione sovrascrive la voce esistente. Continuare?");
+  display_alert(messages.random);
 }
 
 function random_song(){
@@ -1568,7 +1598,7 @@ function swap_cf_clef(){
     swap_active_clef();
   }
   else
-    update_message_box(-1, "Non puoi più cambiare il rigo del cantus firmus. Elimina il brano e riprova");
+    update_message_box(-1, messages.cannot_change_clef);
 }
 
 function swap_active_clef(){
@@ -1592,14 +1622,14 @@ function pass_to_counterpoint(){
   var button = document.getElementById("counterpoint");
   find_errors_on_cantus_firmus();
   if(errors.length)
-    update_message_box(-1, "Prima di passare a comporre il contrappunto, è necessario comporre un cantus firmus privo di errori");
+    update_message_box(-1, messages.cannot_pass_to_cp);
   else{
     button.onclick = go_back_to_cf;
     button.classList.add("active");
     swap_active_clef();
     counterpoint_active = true;
     toggle_message_direction();
-    update_message_box(0, "Ciao, sono Giovanni Pierluigi da Palestrina e ti aiuterò a scrivere una seconda voce secondo le regole del Contrappunto di Prima Specie");
+    update_message_box(0, messages.palestrina);
   }
 }
 
@@ -1616,7 +1646,7 @@ function go_back_to_cf(event){
   swap_active_clef();
   counterpoint_active = false;
   toggle_message_direction();
-  update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
+  update_message_box(0, messages.gregory);
   display_pointers([]);
 }
 
@@ -1625,7 +1655,7 @@ function initialize(){
   document.getElementById("alert_window").style.display = "block";
   document.getElementById("hide_all").style.display = "none";
   document.getElementById("container").style.visibility = "visible";
-  update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
+  update_message_box(0, messages.gregory);
 }
 
 function display_key_signature(alter_number){
