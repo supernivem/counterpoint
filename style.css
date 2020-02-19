@@ -89,12 +89,22 @@ body{
 .violinkey{
   height: 80px;
   transform: translate(0px,-20%);
-  display: block;
 }
 
 .basskey{
   height: 35px;
   margin: 66px 0 0 8px;
+  display: block;
+}
+
+#treble_signature{
+  float: right;
+  transform: translate(-30px,-20px);
+}
+
+#bass_signature{
+  float: right;
+  transform: translate(-30px,-45px);
 }
 
 .notespace{
@@ -167,9 +177,20 @@ img.wholenote{
   width: 18px;
 }
 
-img.sharp{
+img.accidental{
   transform: translate(-11px, -20px);
+}
+
+img.sharp{
   width: 9px;
+}
+
+img.flat{
+  width: 10px;
+}
+
+img.natural{
+  width: 7px;
 }
 
 img.wholerest{

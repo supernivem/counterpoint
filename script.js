@@ -9,10 +9,13 @@ const url_wholerest = "images/wholerest.png";
 const url_wholenote = "images/wholenote.png";
 const url_sharp = "images/sharp.png";
 const url_flat = "images/flat.png";
+const url_natural = "images/natural.png";
 const url_arrow_top = "images/arrowtop.png";
 const url_arrow_down = "images/arrowdown.png";
 const url_treble = "images/treble.svg";
 const url_bass = "images/bass.png";
+const url_play = "images/play.png";
+const url_stop = "images/stop.png";
 const messages = new Map([
     ['too_short', 'Il cantus firmus è troppo corto'],
     ['pauses', 'Non ci devono essere pause'],
@@ -51,6 +54,8 @@ var motions = new Array();
 var counterpoint_active = false;
 var is_playing = false;
 var alter_active = 0;
+var signature = 0;
+var altered_notes = new Array();
 var cf_clef = "treble";
 var loop_cf;
 /*var real = new Float32Array([0,
@@ -170,6 +175,7 @@ firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
 
 function insert_note(event){
+  var alter = alter_active;
   var element = event.target;
   while(element.className != "notespot active")
     element = element.parentNode;
@@ -185,15 +191,27 @@ function insert_note(event){
     for (var j=0; notespot=notespot.previousElementSibling; j--);
   var index = k*notes_in_measure+i;
   var length = cantus_firmus.length;
+  if(altered_notes.includes(j)){
+    if(alter_active==0)
+      alter = Math.sign(signature);
+    else if(alter_active==Math.sign(signature))
+      alter = 0;
+    else
+      alter = alter_active;
+  }
+  else if(alter_active)
+    alter = alter_active;
+  else
+    alter = null;
   if(counterpoint_active){
-    counterpoint[index] = {note: j, alter: alter_active};
+    counterpoint[index] = {note: j, alter: alter};
     intervals = get_all_intervals(cantus_firmus, counterpoint);
     motions = get_all_motions(cantus_firmus, counterpoint);
   }
   else
-    cantus_firmus[index] = {note: j, alter: alter_active};
+    cantus_firmus[index] = {note: j, alter: alter};
   render_stave();
-  play_note(ionian_mode.get(j)+alter_active, example_last);
+  play_note(ionian_mode.get(j)+alter, example_last);
 }
 
 function remove_note(event){
@@ -266,7 +284,7 @@ function render_stave(){
           while(notespot.firstChild) notespot.removeChild(notespot.firstChild);
           note = melody[i*notes_in_measure+j];
           if(note.note==k){
-            insert_wholenote(notespot, note.alter);
+            insert_wholenote(notespot, (note.alter==Math.sign(signature) && altered_notes.includes(note.note)) ? null : note.alter);
             if(active_treble && k==0 || !active_treble && k==-12)
               notespot.parentElement.classList.replace("noline", "lineonbottom");
             else
@@ -314,15 +332,19 @@ function insert_wholenote(node, alter){
   img.src = url_wholenote;
   img.classList.add("wholenote");
   node.append(img);
-  if(alter==1){
+  if(alter!=null){
     img = document.createElement("img");
-    img.src = url_sharp;
-    img.classList.add("sharp");
-    node.append(img);
-  }else if(alter==-1){
-    img = document.createElement("img");
-    img.src = url_flat;
-    img.classList.add("sharp");
+    img.classList.add("accidental");
+    if(alter==1){
+      img.src = url_sharp;
+      img.classList.add("sharp");
+    }else if(alter==-1){
+      img.src = url_flat;
+      img.classList.add("flat");
+    }else{
+      img.src = url_natural;
+      img.classList.add("natural");
+    }
     node.append(img);
   }
 }
@@ -399,7 +421,7 @@ function remove_measure(int){
 }
 
 function play_note(note, duration){
-  var max_gain = Math.pow(0.97, note+12);
+  var max_gain = Math.pow(0.995, note+21)-0.7;
   var ac = new AudioContext();
   var wave = ac.createPeriodicWave(real, imag);
   var osc = ac.createOscillator();
@@ -419,7 +441,7 @@ function play_song(){
   is_playing = true;
   var button = document.getElementById("play")
   button.onclick = stop_song;
-  button.src="http://we-mobi.com/wp-content/uploads/2014/10/com_sapps_android_NoWallpaper.png";
+  button.src = url_stop;
   var i = 0;
   var notes;
   function myLoop(){
@@ -440,7 +462,7 @@ function stop_song(){
   is_playing = false;
   var button = document.getElementById("play")
   button.onclick = play_song;
-  button.src="https://i.pinimg.com/originals/e1/bd/8d/e1bd8d29a727bb65b99d35e3eeec64ed.png";
+  button.src = url_play;
 }
 
 function display_playing_note(notespace, duration){
@@ -1606,6 +1628,67 @@ function initialize(){
   update_message_box(0, "Ciao, sono Gregorio Magno e ti aiuterò a scrivere un Cantus Firmus secondo le regole della tradizione musicale");
 }
 
+function display_key_signature(alter_number){
+  var treble_box = document.getElementById("treble_signature");
+  var bass_box = document.getElementById("bass_signature");
+  while (treble_box.firstChild) treble_box.removeChild(treble_box.lastChild);
+  while (bass_box.firstChild) bass_box.removeChild(bass_box.lastChild);
+  var img;
+  var symbol;
+  if(alter_number>0){
+    symbol = url_sharp;
+    for(var i=1; i<=alter_number; i++){
+      img = document.createElement("img");
+      img.src = symbol;
+      img.classList.add("sharp");
+      img.style.transform = "translateY(" + (i*3-2)%7*5.5 + "px)";
+      treble_box.append(img);
+      bass_box.append(img.cloneNode(true));
+    }
+  }
+  else{
+    symbol = url_flat;
+    for(var i=-1; i>=alter_number; i--){
+      img = document.createElement("img");
+      img.src = symbol;
+      img.classList.add("flat");
+      img.style.transform = "translateY(" + (((i+8)*3-3)%7+1)*5.5 + "px)";
+      treble_box.append(img);
+      bass_box.append(img.cloneNode(true));
+    }
+  }
+}
+
+function change_key_signature(){
+  var alters = 3;
+  altered_notes = [];
+  if(!counterpoint.size){
+    signature += alter_active;
+    if(signature<-6)
+      signature = signature+12;
+    else if(signature>6)
+      signature = signature-12;
+    display_key_signature(signature);
+    if(signature>0){
+      for(var i=0; i<signature; i++){
+        for(var note=-12; note<=12; note++)
+          if((note+14)%7==alters)
+            altered_notes.push(note);
+        alters = (alters+4)%7;
+      }
+    }
+    else{
+      alters = 6;
+      for(var i=0; i>signature; i--){
+        for(var note=-12; note<=12; note++)
+          if((note+14)%7==alters)
+            altered_notes.push(note);
+        alters = (alters+3)%7;
+      }
+    }
+  }
+}
+
 for(var i=0; i<min_measures; i++)
   insert_measure();
 document.getElementById("plus").onclick = add_measure;
@@ -1623,4 +1706,5 @@ document.getElementById("cf_clef").onclick = swap_cf_clef;
 document.getElementById("counterpoint").onclick = pass_to_counterpoint;
 document.getElementById("alert_cancel").onclick = hide_alert;
 document.getElementById("get_in").onclick = initialize;
+document.getElementById("clef_box").onclick = change_key_signature;
 update_message_box(0, "");
