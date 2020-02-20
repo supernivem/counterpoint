@@ -8,7 +8,7 @@ Subjects:
 - *Advanced Coding Tools and Methodologies*, by Prof. Francesco Bruschi, Prof. Vincenzo Rana
 - *Computer Music - Representations and Models*, by Prof. Augusto Sarti
 
-Surge: http://counterpoint.surge.sh
+Surge: http://counterpoint.surge.sh (updated to february 20th 2020)
 
 Trailer: https://youtu.be/lihycwecfso (unfortunately audio is distort)
 
@@ -24,7 +24,7 @@ One of the most famous polyphonic composer who worked on conterpont was **Giovan
 
 ## Technical aspects
 
-The most challenging part of this project is the **automatic correction tool**, both of Cantus Firmus and Counterpoint. It is based on a *genetic algorithm* that, starting from your own composition (or even on a randomic one), it looks for a better one without errors. When a correct voice is found, the app provides it you and allows you to listen to the new music.
+The most challenging part of this project is the **automatic correction tool**, both of Cantus Firmus and Counterpoint. It is based on a *genetic algorithm* that, starting from your own composition (or even on a randomic one), it looks for a better one without errors. When a correct voice is found, the app provides it to you and allows you to listen to it.
 
 ### How the algorithm works
 
@@ -45,14 +45,16 @@ The buttons on the top have respectively the follow funcions:
 - Save the song
 - Delete the song
 - Import the saved song
-- Enable/disable sharp note insertion
-- Enable/disable flat note insertion
-- Chech the current voice
+- Enable/disable sharp (on a key-sharpened note it inserts natural note)
+- Enable/disable flat (on a key-flattened note it inserts natural note)
+- Check the current voice
 - Fix the current voice
 - Randomize the current voice
 - Select the stave on which you want to compose the Cantus Firmus (only at beginning!)
 - Swap from Cantus Firmus to Second Voice and vice versa
 
+To change key signature (this can be done only on an empty score), select one of the accidentals (sharp or flat) and then click on the key area.
+
 ## Evolution
 
-Currently, the app lets to write music only in diatonic scale of C major (or A minor) and allows you to compose with counterpoint *of first species in two voices*: it means that the song is composed by two voices and there is a one-to-one relation between notes on Cantus Firmus and Counterpoint. Future updates may include the possibility of writing music in any key, composing more than two voices and allow to explore Counterpoint in all species.
+Currently, the app allows you to compose with counterpoint *of first species in two voices*: it means that the song is composed by two voices and there is a one-to-one relation between notes on Cantus Firmus and Counterpoint. Future updates may include the possibility of composing more than two voices and allow to explore Counterpoint in all species.
