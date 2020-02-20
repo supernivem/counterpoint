@@ -219,7 +219,7 @@ function insert_note(event){
   var length = cantus_firmus.length;
   if(altered_notes.includes(j)){
     if(alter_active==0)
-      alter = Math.sign(signature);
+      alter = null;
     else if(alter_active==Math.sign(signature))
       alter = 0;
     else
@@ -237,7 +237,7 @@ function insert_note(event){
   else
     cantus_firmus[index] = {note: j, alter: alter};
   render_stave();
-  play_note(ionian_mode.get(j)+alter, example_last);
+  play_note(j, alter, example_last);
 }
 
 function remove_note(event){
@@ -446,13 +446,14 @@ function remove_measure(int){
     }
 }
 
-function play_note(note, duration){
+function play_note(note, alter, duration){
+  var pitch = ionian_mode.get(note) + (alter!=null ? alter : altered_notes.includes(note) ? Math.sign(signature) : 0);
   var max_gain = Math.pow(0.975, note+21);
   var ac = new AudioContext();
   var wave = ac.createPeriodicWave(real, imag);
   var osc = ac.createOscillator();
   var g = ac.createGain();
-  osc.frequency.setValueAtTime(fundamental_frequency*Math.pow(2, (note-9)/12.001), ac.currentTime);
+  osc.frequency.setValueAtTime(fundamental_frequency*Math.pow(2, (pitch-9)/12.001), ac.currentTime);
   osc.setPeriodicWave(wave);
   osc.connect(g);
   g.connect(ac.destination);
@@ -475,7 +476,7 @@ function play_song(){
       notes = [cantus_firmus[i], counterpoint[i]];
       for(var note of notes)
         if(note)
-          play_note(ionian_mode.get(note.note) + note.alter, whole_note);
+          play_note(note.note, note.alter, whole_note);
       display_playing_note(i, whole_note);
       i++;
       setTimeout(i < cantus_firmus.length ? myLoop : stop_song, whole_note*1000);
@@ -531,16 +532,22 @@ function save_song(){
   var cf_for_saving = new Array();
   var ctp_for_saving = new Array();
   for(var i=0; i<cantus_firmus.length; i++){
-    if(cantus_firmus[i]!=null)
+    if(cantus_firmus[i]!=null){
       cf_for_saving[i] = cantus_firmus[i];
+      if(cantus_firmus[i].alter==null)
+        cf_for_saving[i].alter = "null";
+    }
     else
       cf_for_saving[i] = -1;
-    if(counterpoint[i]!=null)
+    if(counterpoint[i]!=null){
       ctp_for_saving[i] = counterpoint[i];
+      if(counterpoint[i].alter==null)
+        ctp_for_saving[i].alter = "null";
+    }
     else
       ctp_for_saving[i] = -1;
   }
-  db.collection("data").doc("song").set({clef: cf_clef, cf: cf_for_saving, ctp: ctp_for_saving});
+  db.collection("data").doc("song").set({clef: cf_clef, cf: cf_for_saving, ctp: ctp_for_saving, signature: signature});
   update_message_box(1, messages.save_done);
   hide_alert();
 }
@@ -562,13 +569,19 @@ function import_song(){
     .then(doc => {
       saved_cf_clef = doc.data().clef;
       cantus_firmus = [];
+      signature = doc.data().signature;
+      display_key_signature(signature);
+      change_key_signature();
       counterpoint_active = false;
       if(cf_clef!=saved_cf_clef)
         swap_cf_clef();
       note = doc.data().cf;      
       for(var i=0; note[i]!=null; i++){
-        if(note[i]!=-1)
+        if(note[i]!=-1){
           cantus_firmus[i] = note[i];
+          if(note[i].alter=="null")
+            cantus_firmus[i].alter = null;
+        }
         else
           cantus_firmus[i] = null;
       }
@@ -578,17 +591,22 @@ function import_song(){
         remove_measure(measure_exceed);
       note = doc.data().ctp;
       if(note.length){
-        counterpoint_active = true;
         for(var i=0; i<note.length; i++){
-          if(note[i]!=-1)
+          if(note[i]!=-1){
+            counterpoint_active = true;
             counterpoint[i] = note[i];
+            if(note[i].alter=="null")
+              counterpoint[i].alter = null;
+          }
           else
             counterpoint[i] = null;
         }
-        intervals = get_all_intervals(cantus_firmus, counterpoint);
-        motions = get_all_motions(cantus_firmus, counterpoint);
+        if(counterpoint_active){
+          intervals = get_all_intervals(cantus_firmus, counterpoint);
+          motions = get_all_motions(cantus_firmus, counterpoint);
+          pass_to_counterpoint();
+        }
         render_stave();
-        pass_to_counterpoint();
       }
       update_message_box(1, messages.import_done);
     })
