@@ -66,6 +66,7 @@ const texts = new Map([
     ['chromaticisms2', 'Ci sono cromatismi proibiti'],
     ['start', 'Il contrappunto ha la nota iniziale scorretta'],
     ['end', 'Il contrappunto deve finire sulla tonica preceduto da un moto contrario e congiunto'],
+    ['far', 'Le note del contrappunto possono distare da quelle del cantus firmus al più un intervallo di decima'],
   ]);
 const ionian_mode = new Map([[0,0],[1,2],[2,4],[3,5],[4,7],[5,9],[6,11],[7,12],[8,14],[9,16],[10,17],[11,19],[12,21],[-1,-1],[-2,-3],[-3,-5],[-4,-7],[-5,-8],[-6,-10],[-7,-12],[-8,-13],[-9,-15],[-10,-17],[-11,-19],[-12,-20]]);
 const tonics = {
@@ -670,6 +671,9 @@ function find_errors_on_counterpoint(){
     if(pointers.length)
       errors.push({type: "leaps", positions: pointers});
     pointers = has_contrary_before_perfects(intervals, motions);
+    pointers = has_repeated_notes(cantus_firmus);
+    if(pointers.length)
+      errors.push({type: "repeat", positions: pointers});
     if(pointers.length)
       errors.push({type: "contrary", positions: pointers});
     pointers = has_consecutive_fifths_or_octaves(intervals);
@@ -693,9 +697,12 @@ function find_errors_on_counterpoint(){
     pointers = has_legit_leaps(counterpoint);
     if(pointers.length)
       errors.push({type: "leaps2", positions: pointers});
+    pointers = has_legit_double_leaps(counterpoint);
+    if(pointers.length)
+      errors.push({type: "double", positions: pointers});
     pointers = has_overrange(cantus_firmus, counterpoint);
     if(pointers.length)
-      errors.push({type: "overrange", positions: pointers});
+      errors.push({type: "far", positions: pointers});
     pointers = overrange(counterpoint);
     if(pointers.length)
       errors.push({type: "overrange", positions: pointers});
@@ -1570,6 +1577,7 @@ function evaluate(cantus_firmus){
 
 function evaluate_counterpoint(counterpoint, intervals, motions){
   var errors = 0;
+  errors += has_repeated_notes(counterpoint).length;
   errors += has_dissonances(intervals).length;
   errors += has_unison_in_middle(intervals).length;
   errors += has_contrary_before_perfects(intervals, motions).length;
@@ -1580,6 +1588,7 @@ function evaluate_counterpoint(counterpoint, intervals, motions){
   errors += has_correct_end(intervals, counterpoint).length;
   errors += has_dissonant_interval(counterpoint).length;
   errors += has_legit_leaps(counterpoint).length;
+  errors += has_legit_double_leaps(counterpoint).length;
   errors += has_overrange(cantus_firmus, counterpoint).length;
   errors += has_range_too_large(counterpoint);
   return errors;
@@ -1600,6 +1609,7 @@ function random_song(){
   else
     random_cantus_firmus();
   hide_alert();
+  display_pointers([]);
   update_message_box(0, "");
 }
 
