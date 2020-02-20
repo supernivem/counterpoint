@@ -448,7 +448,7 @@ function remove_measure(int){
 
 function play_note(note, alter, duration){
   var pitch = ionian_mode.get(note) + (alter!=null ? alter : altered_notes.includes(note) ? Math.sign(signature) : 0);
-  var max_gain = Math.pow(0.975, note+21);
+  var max_gain = Math.pow(0.98, note)-0.7;
   var ac = new AudioContext();
   var wave = ac.createPeriodicWave(real, imag);
   var osc = ac.createOscillator();
@@ -687,6 +687,18 @@ function find_errors_on_counterpoint(){
     pointers = has_correct_end(intervals, counterpoint);
     if(pointers.length)
       errors.push({type: "end", positions: pointers});
+        pointers = has_dissonant_interval(counterpoint);
+    if(pointers.length)
+      errors.push({type: "dissonances", positions: pointers});
+    pointers = has_legit_leaps(counterpoint);
+    if(pointers.length)
+      errors.push({type: "leaps2", positions: pointers});
+    pointers = has_overrange(cantus_firmus, counterpoint);
+    if(pointers.length)
+      errors.push({type: "overrange", positions: pointers});
+    pointers = overrange(counterpoint);
+    if(pointers.length)
+      errors.push({type: "overrange", positions: pointers});
   }
 }
 
@@ -831,7 +843,7 @@ function has_pauses(cantus_firmus){
 function has_chromaticism(cantus_firmus){
   var positions = new Array();
   for(var i=0; i<cantus_firmus.length; i++)
-    if(cantus_firmus[i].alter)
+    if(cantus_firmus[i].alter!=null)
       positions.push(i);
   return positions;
 }
@@ -846,11 +858,22 @@ function begins_and_end_on_tonic(cantus_firmus){
 }
 
 function are_tonic_notes(one, two){
-  if(tonics.major.includes(one) && tonics.major.includes(two))
-    return true;
-  if(tonics.minor.includes(one) && tonics.minor.includes(two))
+  var tonics = [0,5].map(n => get_standardised_note(n + get_note_of_ionian_grade(0)));
+  if(tonics.includes(get_standardised_note(one)) && are_the_same_note(one, two))
     return true;
   return false
+}
+
+function are_the_same_note(one, two){
+  return (two-one)%7==0;
+}
+
+function get_note_of_ionian_grade(grade){
+  return ((signature+7)*4+grade)%7;
+}
+
+function get_standardised_note(note){
+  return (note+14)%7;
 }
 
 function ends_with_clausula_vera(cantus_firmus){
@@ -888,7 +911,7 @@ function is_little_variety(cantus_firmus){
 function has_range_too_large(cantus_firmus){
   var tuple = overrange(cantus_firmus);
   if(tuple.length)
-    return Math.abs(tuple[0]-tuple[1]);
+    return Math.abs(cantus_firmus[tuple[0]].note-cantus_firmus[tuple[1]].note);
   return 0;
 }
 
@@ -957,10 +980,12 @@ function has_dissonant_interval(cantus_firmus){
 }
 
 function is_tritone(prev, next){
-  if(cf_clef=="treble")
-    return prev==3 && next==6 || prev==6 && next==3 || prev==6 && next==10 || prev==10 && next==6;
-  else
-    return prev==-1 && next==-4 || prev==-4 && next==-1 || prev==-4 && next==-8 || prev==-8 && next==-4 || prev==-11 && next==-8 || prev==-8 && next==-11;
+  var subtonic = get_note_of_ionian_grade(6);
+  if(get_standardised_note(next)==subtonic && (next-prev==3 || prev-next==4))
+    return true;
+  if(get_standardised_note(prev)==subtonic && (prev-next==3 || next-prev==4))
+    return true;
+  return false;
 }
 
 function has_legit_leaps(cantus_firmus){
@@ -981,10 +1006,8 @@ function is_octave(prev, next){
 }
 
 function is_ascending_minor_sixth(prev, next){
-  if(cf_clef=="treble")
-    return (prev==2 || prev==5 || prev==6) && next==prev+5;
-  else
-    return (prev==-5 || prev==-8 || prev==-9 || prev==-12) && next==prev+5;
+  var first = get_standardised_note(prev);
+    return next==prev+5 && (first==get_note_of_ionian_grade(2) || first==get_note_of_ionian_grade(5) || first==get_note_of_ionian_grade(6));
 }
 
 function single_leaps_are_framed_by_contrary_motion_when_requested(cantus_firmus){
@@ -1018,20 +1041,16 @@ function has_legit_double_leaps(cantus_firmus){
     mid = cantus_firmus[i+1].note;
     last = cantus_firmus[i+2].note;
     if((first+1<mid && mid+1<last) || (first-1>mid && mid-1>last)){ //se sono due salti consecutivi
-      if(first>last) last = [first, first = last][0];
-      if(!(is_ascending_perfect_fifth(first, mid) && is_ascending_perfect_fourth(mid, last)) && !(first==mid-2 && mid==last-3) && !(first==mid-2 && mid==last-2 && mid!=8 && mid!=-6))
+      if(first>last) last = [first, first = last][0]; //ordine crescente
+      if(!matches_pattern(first, mid, last, 4, 3) && !matches_pattern(first, mid, last, 2, 3) && !(matches_pattern(first, mid, last, 2, 2) && get_standardised_note(mid)!=get_note_of_ionian_grade(1)))
         positions.push(i, i+1, i+2);
     }
   }
   return positions;
 }
 
-function is_ascending_perfect_fourth(first, second){
-  return second==first+3 && !is_tritone(first, second);
-}
-
-function is_ascending_perfect_fifth(first, second){
-  return second==first+4 && !is_tritone(first, second);
+function matches_pattern(first, mid, last, bottom, top){
+  return mid-first==bottom && last-mid==top;
 }
 
 function double_leaps_are_framed_by_contrary_motion(cantus_firmus){
@@ -1115,9 +1134,9 @@ function correct_cantus_firmus(){
     return 0;
   }
   update_message_box(0, messages.correcting);
-  for(var i=0; i<length; i++) //eliminate all chromaticisms
-    candidate[i].alter = 0;
-  fix_extremes(candidate);
+  for(var i=0; i<length; i++) //eliminate all accidentals
+    candidate[i].alter = null;
+  fix_extremes(candidate, max_note, min_note);
   errors = evaluate(candidate);
   cantus_firmi.push({mark: errors, cantus: candidate});
   if(errors==0)
@@ -1207,7 +1226,7 @@ function correct_counterpoint(){
   }
   update_message_box(0, messages.correcting);
   for(var i=0; i<length; i++) //eliminate all chromaticisms
-    candidate[i].alter = 0;
+    candidate[i].alter = null;
   fix_extremes_counterpoint(candidate);
   candidate_intervals = get_all_intervals(cantus_firmus, candidate);
   candidate_motions = get_all_motions(cantus_firmus, candidate);
@@ -1374,9 +1393,9 @@ function is_horn_fifth(index){
   high_prev = higher_voice[index-1].note;
   high_next = higher_voice[index].note;
   low_prev = lower_voice[index-1].note;
-  if(intervals[index-1]==3 && high_prev==high_next+1 && are_tonic_notes(cantus_firmus[0].note, low_prev))
+  if(intervals[index-1]==3 && high_prev==high_next+1 && are_the_same_note(cantus_firmus[0].note, low_prev))
     return true;
-  if((intervals[index-1]==6 || intervals[index-1]==8) && high_prev+1==high_next && are_tonic_notes(cantus_firmus[0].note, high_prev))
+  if((intervals[index-1]==6 || intervals[index-1]==8) && high_prev+1==high_next && are_the_same_note(cantus_firmus[0].note, high_prev))
     return true;
   return false;
 }
@@ -1394,14 +1413,22 @@ function is_horn_octave(index){
   high_prev = higher_voice[index-1].note;
   high_next = higher_voice[index].note;
   low_next = lower_voice[index].note;
-  if(intervals[index-1]==5 && high_prev==high_next+1 && are_tonic_notes(cantus_firmus[0].note, low_next))
+  if(intervals[index-1]==5 && high_prev==high_next+1 && are_the_same_note(cantus_firmus[0].note, low_next))
     return true;
   return false;
 }
 
+function has_overrange(cantus, counter){
+  var positions = new Array();
+  for(var i=0; i<cantus.length; i++)
+    if(Math.abs(cantus[i].note-counter[i].note)>16)
+      positions.push(i);
+  return positions;
+}
+
 function get_interval(high, low){
   if(low>high)
-    low = [high, high = low][0];
+    return (low-high-1)%7+2;
   return (high-low-1)%7+2;
 }
 
@@ -1471,27 +1498,17 @@ function copy_cf(cantus_firmus){
   return copy;
 }
 
-function fix_extremes(cantus){
+function fix_extremes(cantus, max, min){
   var configurations = new Array();
-  var major = tonics.major;
-  var minor = tonics.minor;
   var first = cantus[0].note;
-  var avoid_note = 12;
-  if(cf_clef=="bass"){
-    avoid_note = 0;
-  }
   var last = cantus[cantus.length-1].note;
-    for(var i=0; i<major.length; i++) //cannot end on high C in bass clef
-      for(var j=0; j<major.length; j++)
-        if(major[j]!=avoid_note)
-          configurations.push({distance: Math.abs(first-major[i])+Math.abs(last-major[j]), first: major[i], last: major[j]});
-    for(var i=0; i<minor.length; i++)
-      for(var j=0; j<minor.length; j++) //cannot end on high A in treble clef
-        if(minor[j]!=avoid_note)
-          configurations.push({distance: Math.abs(first-minor[i])+Math.abs(last-minor[j]), first: minor[i], last: minor[j]});
-    configurations.sort((a,b) => a.distance - b.distance);
-    cantus[0].note=configurations[0].first;
-    cantus[cantus.length-1].note=configurations[0].last;
+  for(var i=min; i<=max; i++)
+    for(var j=min; j<max; j++) //last note cannot be the highest due to clausula vera
+      if(are_tonic_notes(i, j))
+        configurations.push({distance: Math.abs(first-i)+Math.abs(last-j), first: i, last: j});
+  configurations.sort((a,b) => a.distance - b.distance);
+  cantus[0].note=configurations[0].first;
+  cantus[cantus.length-1].note=configurations[0].last;
   if(ends_with_clausula_vera(cantus).length)
     cantus[cantus.length-2].note=cantus[cantus.length-1].note+1;
 }
@@ -1561,12 +1578,20 @@ function evaluate_counterpoint(counterpoint, intervals, motions){
   if(has_too_many_parallels(intervals).length) errors++;
   errors += has_correct_start(intervals).length;
   errors += has_correct_end(intervals, counterpoint).length;
+  errors += has_dissonant_interval(counterpoint).length;
+  errors += has_legit_leaps(counterpoint).length;
+  errors += has_overrange(cantus_firmus, counterpoint).length;
+  errors += has_range_too_large(counterpoint);
   return errors;
 }
 
 function ask_random(){
-  document.getElementById("alert_ok").onclick = random_song;
-  display_alert(messages.random);
+  if(counterpoint_active ? counterpoint.length : cantus_firmus.length){
+    document.getElementById("alert_ok").onclick = random_song;
+    display_alert(messages.random);
+  }
+  else
+    random_song();
 }
 
 function random_song(){
@@ -1579,10 +1604,11 @@ function random_song(){
 }
 
 function random_cantus_firmus(){
+  var length = (document.getElementById("measures").children.length - 1)*notes_in_measure;
   var swapper = 1;
   if(cf_clef=="bass") swapper = -1;
-  for(var i=0; i<cantus_firmus.length; i++)
-    cantus_firmus[i].note=Math.round(Math.random()*12*swapper);
+  for(var i=0; i<length; i++)
+    cantus_firmus[i] = {note: Math.round(Math.random()*12*swapper), alter: null};
   render_stave();
 }
 
@@ -1590,14 +1616,12 @@ function random_counterpoint(){
   var swapper = 1;
   var new_note;
   if(cf_clef=="treble") swapper = -1;
-  for(var i=0; i<counterpoint.length; i++){
-    if(counterpoint[i]){
-      new_note = Math.round(Math.random()*12*swapper);
-      counterpoint[i].note = new_note;
-      intervals[i] = get_interval(new_note, cantus_firmus[i].note);
-      if(counterpoint[i-1])
-        motions[i-1] = get_motion(counterpoint[i-1].note, new_note, cantus_firmus[i-1].note, cantus_firmus[i].note);
-    }
+  for(var i=0; i<cantus_firmus.length; i++){
+    new_note = Math.round(Math.random()*12*swapper);
+    counterpoint[i] = {note: new_note, alter: null};
+    intervals[i] = get_interval(new_note, cantus_firmus[i].note);
+    if(counterpoint[i-1])
+      motions[i-1] = get_motion(counterpoint[i-1].note, new_note, cantus_firmus[i-1].note, cantus_firmus[i].note);
   }
   render_stave();
 }
