@@ -5,6 +5,8 @@ const fadeOut = 0.1;
 const example_last = 0.5;
 const whole_note = 1;
 const fundamental_frequency = 220;
+const correction_pause = 250;
+const range_limit = 9; //intervallo di decima
 const url_wholerest = "images/wholerest.png";
 const url_wholenote = "images/wholenote.png";
 const url_sharp = "images/sharp.png";
@@ -58,7 +60,7 @@ const texts = new Map([
     ['double', 'Ci sono doppi salti illegali'],
     ['contrary2', 'Mancano i moti contrari ad inquadrare i doppi salti'],
     ['climax', 'Ci sono climax multipli'],
-    ['harmonic_dissonances', 'Sono presenti intervalli amonicamente dissonanti'],
+    ['harmonic_dissonances', 'Sono presenti intervalli armonicamente dissonanti'],
     ['unisons', "L'unisono è ammesso solo all'inizio e alla fine"],
     ['contrary', "Gli intervalli di quinta, ottava e unisono devono essere preceduti da moti contrari, ad eccezione delle cd. quinte di corno"],
     ['parallel', "Sono presenti quinte o ottave parallele"],
@@ -69,10 +71,6 @@ const texts = new Map([
     ['far', 'Le note del contrappunto possono distare da quelle del cantus firmus al più un intervallo di decima'],
   ]);
 const ionian_mode = new Map([[0,0],[1,2],[2,4],[3,5],[4,7],[5,9],[6,11],[7,12],[8,14],[9,16],[10,17],[11,19],[12,21],[-1,-1],[-2,-3],[-3,-5],[-4,-7],[-5,-8],[-6,-10],[-7,-12],[-8,-13],[-9,-15],[-10,-17],[-11,-19],[-12,-20]]);
-const tonics = {
-  major: [0,7,-7],
-  minor: [5,12,-2,-9]
-};
 var errors = new Array();
 var cantus_firmus = new Array();
 var counterpoint = new Array();
@@ -234,10 +232,12 @@ function insert_note(event){
     counterpoint[index] = {note: j, alter: alter};
     intervals = get_all_intervals(cantus_firmus, counterpoint);
     motions = get_all_motions(cantus_firmus, counterpoint);
+    render_stave(counterpoint, is_active_treble());
   }
-  else
+  else{
     cantus_firmus[index] = {note: j, alter: alter};
-  render_stave();
+    render_stave(cantus_firmus, is_active_treble());
+  }
   play_note(j, alter, example_last);
 }
 
@@ -258,27 +258,21 @@ function remove_note(event){
       motions[index-1] = null;
     if(index<cantus_firmus.length-1)
       motions[index] = null;
+    render_stave(counterpoint, is_active_treble());
   }
-  else
+  else{
     cantus_firmus[index] = null;
-  while(cantus_firmus[cantus_firmus.length-1]==null && cantus_firmus.length>0) cantus_firmus.pop();
-  render_stave();
+    while(cantus_firmus[cantus_firmus.length-1]==null && cantus_firmus.length>0) cantus_firmus.pop();
+    render_stave(cantus_firmus, is_active_treble());
+  }
 }
 
-function render_stave(){
+function render_stave(melody, active_treble){
   var measure = document.getElementById("measures");
   var notes_box;
   var note;
-  var melody;
   var interval;
   var motion;
-  var active_treble = is_active_treble();
-  if(counterpoint_active)
-    melody = counterpoint;
-  else
-    melody = cantus_firmus;
-  while(measure.childElementCount<=Math.floor(cantus_firmus.length/notes_in_measure))
-    insert_measure();
   measure = measure.firstElementChild.nextElementSibling;
   for(var i=0; measure; i++){
     var notespace = measure.firstElementChild;
@@ -312,11 +306,11 @@ function render_stave(){
           note = melody[i*notes_in_measure+j];
           if(note.note==k){
             insert_wholenote(notespot, (note.alter==Math.sign(signature) && altered_notes.includes(note.note)) ? null : note.alter);
-            if(active_treble && k==0 || !active_treble && k==-12)
+            if(active_treble ? k==0 : k==-12)
               notespot.parentElement.classList.replace("noline", "lineonbottom");
             else
               notespot.parentElement.classList.replace("lineonbottom", "noline");
-            if(active_treble && k==12 || !active_treble && k==0)
+            if(active_treble ? k==12 : k==0)
               notespot.parentElement.classList.replace("noline", "lineontop");
             else
               notespot.parentElement.classList.replace("lineontop", "noline");
@@ -327,13 +321,13 @@ function render_stave(){
       }
       lyrics = lyrics.firstElementChild.nextElementSibling.firstElementChild;
       interval = intervals[index];
-      if(counterpoint_active && interval)
+      if(interval)
         lyrics.innerHTML = interval;
       else
         lyrics.innerHTML = "";
       lyrics = lyrics.nextElementSibling;
       motion = motions[index];
-      if(counterpoint_active && motion)
+      if(motion)
         lyrics.innerHTML = motion;
       else
         lyrics.innerHTML = "";
@@ -344,7 +338,7 @@ function render_stave(){
 }
 
 function is_active_treble(){
-  return cf_clef=="treble" && !counterpoint_active || cf_clef=="bass" && counterpoint_active;
+  return counterpoint_active ? cf_clef=="bass" : cf_clef=="treble";
 }
 
 function insert_wholerest(node){
@@ -376,11 +370,16 @@ function insert_wholenote(node, alter){
   }
 }
 
-function add_measure(){
+function add_measures(num){
+  for(var i=0; i<num; i++)
+    insert_measure();
+}
+
+function add_one_measure(){
   if(counterpoint_active)
     update_message_box(-1, messages.cannot_change_length);
   else
-    insert_measure();
+    add_measures(1);
 }
 
 function insert_measure(){
@@ -403,7 +402,7 @@ function insert_measure(){
           notespot.classList.add("notespot");
           if(j==5)
             insert_wholerest(notespot);
-          if(cf_clef=="treble" && s=="clef_notes" || cf_clef=="bass" && s=="bass_notes"){
+          if(is_active_treble() ? s=="clef_notes" : s=="bass_notes"){
             notespot.classList.add("active");
             notespot.onclick = insert_note;
           }
@@ -514,13 +513,16 @@ function ask_deleting_song(){
 }
 
 function delete_song(){
-  if(counterpoint_active)
-    counterpoint = [];
-  else
-    cantus_firmus = [];
   intervals = [];
   motions = [];
-  render_stave();
+  if(counterpoint_active){
+    counterpoint = [];
+    render_stave(counterpoint, is_active_treble());
+  }
+  else{
+    cantus_firmus = [];
+    render_stave(cantus_firmus, is_active_treble());
+  }
   hide_alert();
 }
 
@@ -564,20 +566,18 @@ function ask_import_song(){
 
 function import_song(){
   var note;
-  var saved_cf_clef;
+  var importing_cf_clef;
   var measure_exceed = 0;
   var doc = db.collection("data").doc("song").get()
     .then(doc => {
-      saved_cf_clef = doc.data().clef;
       cantus_firmus = [];
+      counterpoint = [];
+      importing_cf_clef = doc.data().clef;
       signature = doc.data().signature;
       display_key_signature(signature);
       change_key_signature();
-      counterpoint_active = false;
-      if(cf_clef!=saved_cf_clef)
-        swap_cf_clef();
       note = doc.data().cf;      
-      for(var i=0; note[i]!=null; i++){
+      for(var i=0; i<note.length; i++){
         if(note[i]!=-1){
           cantus_firmus[i] = note[i];
           if(note[i].alter=="null")
@@ -586,29 +586,44 @@ function import_song(){
         else
           cantus_firmus[i] = null;
       }
-      render_stave();
       measure_exceed = document.getElementById("measures").childElementCount-cantus_firmus.length-1;
       if(measure_exceed > 0)
         remove_measure(measure_exceed);
+      else
+        add_measures(-measure_exceed); 
       note = doc.data().ctp;
-      if(note.length){
-        for(var i=0; i<note.length; i++){
-          if(note[i]!=-1){
-            counterpoint_active = true;
-            counterpoint[i] = note[i];
-            if(note[i].alter=="null")
-              counterpoint[i].alter = null;
+      for(var i=0; i<note.length; i++){
+        if(note[i]!=-1){
+          counterpoint[i] = note[i];
+          if(note[i].alter=="null")
+            counterpoint[i].alter = null;
+        }
+        else
+          counterpoint[i] = null;
+      }
+      render_stave(cantus_firmus, importing_cf_clef=="treble");
+      if(counterpoint.length){
+        intervals = get_all_intervals(cantus_firmus, counterpoint);
+        motions = get_all_motions(cantus_firmus, counterpoint);
+        render_stave(counterpoint, importing_cf_clef!="treble");
+        if(!counterpoint_active){
+          activate_counterpoint();
+          if(cf_clef!=importing_cf_clef){
+            cf_clef = importing_cf_clef;
+            update_cf_clef_button();
           }
           else
-            counterpoint[i] = null;
+            swap_active_clef();
         }
-        if(counterpoint_active){
-          intervals = get_all_intervals(cantus_firmus, counterpoint);
-          motions = get_all_motions(cantus_firmus, counterpoint);
-          pass_to_counterpoint();
-        }
-        render_stave();
       }
+      else
+        if(counterpoint_active){
+          deactivate_counterpoint();
+          if(cf_clef==importing_cf_clef)
+            swap_active_clef();
+          else
+            update_cf_clef_button();
+        }
       update_message_box(1, messages.import_done);
     })
     .catch(err => {
@@ -670,12 +685,12 @@ function find_errors_on_counterpoint(){
     pointers = has_too_many_leaps(counterpoint);
     if(pointers.length)
       errors.push({type: "leaps", positions: pointers});
-    pointers = has_contrary_before_perfects(intervals, motions);
+    pointers = has_not_contrary_before_perfects(intervals, motions);
+    if(pointers.length)
+      errors.push({type: "contrary", positions: pointers});
     pointers = has_repeated_notes(cantus_firmus);
     if(pointers.length)
       errors.push({type: "repeat", positions: pointers});
-    if(pointers.length)
-      errors.push({type: "contrary", positions: pointers});
     pointers = has_consecutive_fifths_or_octaves(intervals);
     if(pointers.length)
       errors.push({type: "parallel", positions: pointers});
@@ -939,9 +954,13 @@ function overrange(cantus_firmus){
       max_pos = i;
     }
   }
-  if(max-min>9)
+  if(exceed_range_limit(max,min))
     return [min_pos, max_pos];
   return [];
+}
+
+function exceed_range_limit(a, b){
+  return Math.abs(a-b)>range_limit;
 }
 
 function has_too_many_leaps(cantus_firmus){
@@ -951,7 +970,7 @@ function has_too_many_leaps(cantus_firmus){
   for(var i=0; i<leaps.length-1; i++)
     if(leaps[i]==leaps[i+1]-1)
       count++;
-  if(count>=(length/2))
+  if(count>(length/2))
     return leaps;
   return [];
 }
@@ -1198,9 +1217,9 @@ function correct_cantus_firmus(){
       cantus_firmi = cantus_firmi.slice(0, population);
     console.log(cantus_firmi[0].cantus.map(a => a.note) + " score: " + cantus_firmi[0].mark + " tentativi: " + (20000-attempt));
     cantus_firmus=cantus_firmi[0].cantus;
-      render_stave();
+      render_stave(cantus_firmus, is_active_treble());
   }
-  }, 500);
+  }, correction_pause);
 }
 
 function correct_counterpoint(){
@@ -1295,18 +1314,22 @@ function correct_counterpoint(){
     counterpoint = counterpoints[0].cantus;
     intervals = counterpoints[0].intervals;
     motions = counterpoints[0].motions;
-    render_stave();
+    render_stave(counterpoint, is_active_treble());
   }
-  }, 500);
+  }, correction_pause);
 }
 
 function has_dissonances(intervals){
   var positions = new Array();
-  var low, interval;
+  var subtonic, interval;
   for(var i=0; i<cantus_firmus.length; i++){
-    low = cantus_firmus[i].note;
+    subtonic = get_note_of_ionian_grade(6);
     interval = intervals[i];
-    if(interval!=1 && interval!=8 && interval!=3 && interval!=6 && !(interval==5 && low!=-1 && low!=-8))
+    if(interval==5){
+      if(get_standardised_note(cantus_firmus[i].note)==subtonic || get_standardised_note(counterpoint[i].note)==subtonic)
+        positions.push(i);
+    }
+    else if(interval==2 || interval==4 || interval==7)
       positions.push(i);
   }
   return positions;
@@ -1321,7 +1344,7 @@ function has_unison_in_middle(intervals){
   return positions;
 }
 
-function has_contrary_before_perfects(intervals, motions){
+function has_not_contrary_before_perfects(intervals, motions){
   var positions = new Array();
   var length = cantus_firmus.length;
   var interval;
@@ -1352,18 +1375,30 @@ function has_consecutive_fifths_or_octaves(intervals){
 
 function has_too_many_parallels(intervals){
   var positions = new Array();
-  for(var i=0; i<intervals.length-3; i++)
-    if((intervals[i]==3 || intervals[i]==6) && intervals[i]==intervals[i+1] && intervals[i+1]==intervals[i+2] && intervals[i+2]==intervals[i+3])
-      positions.push(i, i+1, i+2, i+3);
+  var count = 0;
+  for(var i=0; i<intervals.length-3; i++){
+    count = 0;
+    if(intervals[i]==3 || intervals[i]==6)
+      while(intervals[i]==intervals[i+1]){
+        i++;
+        count++;
+        if(count>=3)
+          positions.push(i);
+      }
+  }
   return positions;
 }
 
-//TODO: add exceptions
 function has_forbidden_chromaticisms(counterpoint){
   var positions = new Array();
   for(var i=0; i<counterpoint.length; i++)
-    if(counterpoint[i].alter)
-      positions.push(i);
+    if(counterpoint[i].alter){
+      if(i!=counterpoint.length-2)
+        positions.push(i);
+      else
+        if(get_standardised_note(counterpoint[i].note)!=get_note_of_ionian_grade(4) || counterpoint[i].alter!=1)
+          positions.push(i);
+    }
   return positions;
 }
 
@@ -1380,9 +1415,9 @@ function has_correct_end(intervals, counterpoint){
   var positions = new Array();
   var last = counterpoint.length - 1;
   var penultimate = last - 1;
-  if(intervals[last]!=1 && intervals[last]!=8)
+  if(intervals[last]!=1 && intervals[last]!=8 || exceed_range_limit(counterpoint[0].note, counterpoint[last].note) || is_overrange(counterpoint[last].note, cantus_firmus[last].note))
     positions.push(last);
-  if(counterpoint[penultimate].note+1!=counterpoint[last].note)
+  if(counterpoint[penultimate].note+1!=counterpoint[last].note || exceed_range_limit(counterpoint[0].note, counterpoint[penultimate].note) || is_overrange(counterpoint[penultimate].note, cantus_firmus[penultimate].note))
     positions.push(penultimate);
   return positions;
 }
@@ -1428,9 +1463,13 @@ function is_horn_octave(index){
 function has_overrange(cantus, counter){
   var positions = new Array();
   for(var i=0; i<cantus.length; i++)
-    if(Math.abs(cantus[i].note-counter[i].note)>16)
+    if(is_overrange(cantus[i].note, counter[i].note))
       positions.push(i);
   return positions;
+}
+
+function is_overrange(cf_note, ctp_note){
+  return Math.abs(cf_note-ctp_note)>range_limit+7;
 }
 
 function get_interval(high, low){
@@ -1476,12 +1515,13 @@ function close_correction(attempt, cantus){
     if(counterpoint_active){
       counterpoint = copy_cf(cantus);
       text = messages.fixed_counterpoint;
+      render_stave(counterpoint, is_active_treble());
     }
     else{
       cantus_firmus = copy_cf(cantus);
       text = messages.fixed_cantusfirmus;
+      render_stave(cantus_firmus, is_active_treble());
     }
-    render_stave();
     update_message_box(+1, text);
   }
 }
@@ -1522,14 +1562,14 @@ function fix_extremes(cantus, max, min){
 
 function fix_extremes_counterpoint(counterpoint){
   var intervals = get_all_intervals(cantus_firmus, counterpoint);
-  var errors = has_correct_start(intervals).length;
+  var errors = has_correct_start(intervals).length + is_overrange(cantus_firmus[0].note, counterpoint[0].note);
   var change = 0;
   var length = counterpoint.length;
-  var max_note = 12;
+  var max_note = cantus_firmus[0].note + 7 + range_limit;
   var min_note = 0;
   if(cf_clef=="treble"){
     max_note = 0;
-    min_note = -12;
+    min_note = cantus_firmus[0].note - 7 - range_limit;
   }
   while(errors && change<26){
     if(change>0) change++;
@@ -1544,13 +1584,15 @@ function fix_extremes_counterpoint(counterpoint){
       errors = 1;
   }
   change = 0;
+  counterpoint[length-2].note = counterpoint[length-1].note-1;
+  intervals = get_all_intervals(cantus_firmus, counterpoint);
   errors = has_correct_end(intervals, counterpoint).length;
   while(errors && change<26){
     if(change>0) change++;
     else change--;
     change = -change;
     counterpoint[length-1].note += change;
-    if(counterpoint[length-1].note>min_note && counterpoint[length-1].note<=max_note){
+    if(counterpoint[length-1].note>min_note && counterpoint[length-1].note<=max_note){ //non può essere la nota più bassa a causa della cv
       counterpoint[length-2].note = counterpoint[length-1].note-1;
       intervals = get_all_intervals(cantus_firmus, counterpoint);
       errors = has_correct_end(intervals, counterpoint).length;
@@ -1558,6 +1600,9 @@ function fix_extremes_counterpoint(counterpoint){
     else
       errors = 1;
   }
+  if(get_standardised_note(counterpoint[length-2].note)==get_note_of_ionian_grade(4))
+    counterpoint[length-2].alter = 1;
+  render_stave(counterpoint, is_active_treble());
 }
 
 function evaluate(cantus_firmus){
@@ -1577,20 +1622,23 @@ function evaluate(cantus_firmus){
 
 function evaluate_counterpoint(counterpoint, intervals, motions){
   var errors = 0;
-  errors += has_repeated_notes(counterpoint).length;
-  errors += has_dissonances(intervals).length;
-  errors += has_unison_in_middle(intervals).length;
-  errors += has_contrary_before_perfects(intervals, motions).length;
-  errors += has_too_many_leaps(counterpoint).length;
-  errors += has_consecutive_fifths_or_octaves(intervals).length;
-  if(has_too_many_parallels(intervals).length) errors++;
-  errors += has_correct_start(intervals).length;
-  errors += has_correct_end(intervals, counterpoint).length;
-  errors += has_dissonant_interval(counterpoint).length;
-  errors += has_legit_leaps(counterpoint).length;
-  errors += has_legit_double_leaps(counterpoint).length;
-  errors += has_overrange(cantus_firmus, counterpoint).length;
-  errors += has_range_too_large(counterpoint);
+  var score = [
+    has_repeated_notes(counterpoint).length,
+    has_dissonances(intervals).length,
+    has_unison_in_middle(intervals).length,
+    has_not_contrary_before_perfects(intervals, motions).length,
+    has_too_many_leaps(counterpoint).length,
+    has_consecutive_fifths_or_octaves(intervals).length,
+    has_too_many_parallels(intervals).length,
+    has_correct_start(intervals).length,
+    has_correct_end(intervals, counterpoint).length,
+    has_dissonant_interval(counterpoint).length,
+    has_legit_leaps(counterpoint).length,
+    has_legit_double_leaps(counterpoint).length,
+    has_overrange(cantus_firmus, counterpoint).length,
+    single_leaps_are_framed_by_contrary_motion_when_requested(counterpoint).length,
+    has_range_too_large(counterpoint)]
+  score.forEach(p => errors += p);
   return errors;
 }
 
@@ -1619,7 +1667,7 @@ function random_cantus_firmus(){
   if(cf_clef=="bass") swapper = -1;
   for(var i=0; i<length; i++)
     cantus_firmus[i] = {note: Math.round(Math.random()*12*swapper), alter: null};
-  render_stave();
+  render_stave(cantus_firmus, is_active_treble());
 }
 
 function random_counterpoint(){
@@ -1633,24 +1681,28 @@ function random_counterpoint(){
     if(counterpoint[i-1])
       motions[i-1] = get_motion(counterpoint[i-1].note, new_note, cantus_firmus[i-1].note, cantus_firmus[i].note);
   }
-  render_stave();
+  render_stave(counterpoint, is_active_treble());
 }
 
 function swap_cf_clef(){
-  var button = document.getElementById("cf_clef");
   if(!cantus_firmus.length){
-    if(cf_clef=="treble"){
-      button.src = url_bass;
+    if(cf_clef=="treble")
       cf_clef = "bass";
-    }
-    else{
-      button.src = url_treble;
+    else
       cf_clef = "treble";
-    }
+    update_cf_clef_button();
     swap_active_clef();
   }
   else
     update_message_box(-1, messages.cannot_change_clef);
+}
+
+function update_cf_clef_button(){
+  var button = document.getElementById("cf_clef");
+  if(cf_clef=="treble")
+    button.src = url_treble;
+  else
+    button.src = url_bass;
 }
 
 function swap_active_clef(){
@@ -1671,18 +1723,22 @@ function swap_active_clef(){
 }
 
 function pass_to_counterpoint(){
-  var button = document.getElementById("counterpoint");
   find_errors_on_cantus_firmus();
   if(errors.length)
     update_message_box(-1, messages.cannot_pass_to_cp);
   else{
-    button.onclick = go_back_to_cf;
-    button.classList.add("active");
     swap_active_clef();
-    counterpoint_active = true;
-    toggle_message_direction();
+    activate_counterpoint();
     update_message_box(0, messages.palestrina);
   }
+}
+
+function activate_counterpoint(){
+  var button = document.getElementById("counterpoint");
+  button.onclick = go_back_to_cf;
+  button.classList.add("active");
+  counterpoint_active = true;
+  toggle_message_direction();
 }
 
 function toggle_message_direction(){
@@ -1691,15 +1747,18 @@ function toggle_message_direction(){
   message_box.classList.toggle("from_palestrina");
 }
 
-function go_back_to_cf(event){
-  var button = event.target;
+function go_back_to_cf(){
+  deactivate_counterpoint();
+  swap_active_clef();
+  display_pointers([]);
+}
+
+function deactivate_counterpoint(){
+  var button = document.getElementById("counterpoint");
   button.onclick = pass_to_counterpoint;
   button.classList.remove("active");
-  swap_active_clef();
   counterpoint_active = false;
   toggle_message_direction();
-  update_message_box(0, messages.gregory);
-  display_pointers([]);
 }
 
 function initialize(){
@@ -1771,9 +1830,8 @@ function change_key_signature(){
   }
 }
 
-for(var i=0; i<min_measures; i++)
-  insert_measure();
-document.getElementById("plus").onclick = add_measure;
+add_measures(min_measures);
+document.getElementById("plus").onclick = add_one_measure;
 document.getElementById("minus").onclick = remove_one_measure;
 document.getElementById("play").onclick = play_song;
 document.getElementById("save").onclick = ask_saving_song;
