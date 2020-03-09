@@ -1016,11 +1016,14 @@ function is_tritone(prev, next){
 
 function has_legit_leaps(cantus_firmus){
   var positions = new Array();
-  var prev, next;
+  var prev, next, interval;
   for(var i=0; i<cantus_firmus.length-1; i++){
     prev = cantus_firmus[i].note;
     next = cantus_firmus[i+1].note;
-    if(prev+4<next || prev-4>next) //se è un intervallo sopra la quinta
+    interval = Math.abs(prev-next);
+    if(cantus_firmus[i+1].alter!=null && interval>2) //se è un intervallo sopra la terza
+      positions.push(i, i+1);
+    else if(interval>4) //se è un intervallo sopra la quinta
       if(!is_octave(prev, next) && !is_ascending_minor_sixth(prev, next))
         positions.push(i, i+1);
   }
@@ -1173,8 +1176,8 @@ function correct_cantus_firmus(){
       found=false;
       close_correction(attempt, cantus_firmi[0].cantus);
     }else{
-    cantus_firmi_length = cantus_firmi.length;
-    for(var i=0; i<cantus_firmi_length && !found && attempt>0; i++){
+      cantus_firmi_length = cantus_firmi.length;
+      for(var i=0; i<cantus_firmi_length && !found && attempt>0; i++){
       for(var j=1; j<length-2 && !found && attempt>0; j++){
         candidate = copy_cf(cantus_firmi[i].cantus);
         if(candidate[j].note<max_note && candidate[j].note<candidate[j-1].note+4 && candidate[j].note<candidate[j+1].note+4){
@@ -1212,12 +1215,12 @@ function correct_cantus_firmus(){
         }        
       }
     }
-    cantus_firmi.sort((a,b) => a.mark - b.mark);
-    if(cantus_firmi.length>population)
-      cantus_firmi = cantus_firmi.slice(0, population);
-    console.log(cantus_firmi[0].cantus.map(a => a.note) + " score: " + cantus_firmi[0].mark + " tentativi: " + (20000-attempt));
-    cantus_firmus=cantus_firmi[0].cantus;
-      render_stave(cantus_firmus, is_active_treble());
+      cantus_firmi.sort((a,b) => a.mark - b.mark);
+      if(cantus_firmi.length>population)
+        cantus_firmi = cantus_firmi.slice(0, population);
+      console.log(cantus_firmi[0].cantus.map(a => a.note) + " score: " + cantus_firmi[0].mark + " tentativi: " + (20000-attempt));
+      cantus_firmus=cantus_firmi[0].cantus;
+        render_stave(cantus_firmus, is_active_treble());
   }
   }, correction_pause);
 }
@@ -1600,8 +1603,18 @@ function fix_extremes_counterpoint(counterpoint){
     else
       errors = 1;
   }
-  if(get_standardised_note(counterpoint[length-2].note)==get_note_of_ionian_grade(4))
-    counterpoint[length-2].alter = 1;
+  if(get_standardised_note(counterpoint[length-2].note)==get_note_of_ionian_grade(4)){
+    if(altered_notes.includes(counterpoint[length-2].note)){
+      if(signature<0)
+        counterpoint[length-2].alter = 0;
+    }
+    else{
+      if(counterpoint[length-2].alter!=null)
+        counterpoint[length-2].alter++;
+      else
+        counterpoint[length-2].alter = 1;
+    }
+  }
   render_stave(counterpoint, is_active_treble());
 }
 
